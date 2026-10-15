@@ -10,8 +10,6 @@ permissions:
 
 env:
   GO_VERSION: "1.27.x"
-  GOOS: linux
-  GOARCH: arm64
   LAMBDA_ARCHIVE: lambda-handler.zip
 
 jobs:
@@ -31,7 +29,7 @@ jobs:
         run: go test ./...
 
       - name: Build Lambda binary
-        run: go build -trimpath -ldflags='-s -w' -o bootstrap ./cmd
+        run: GOOS=linux GOARCH=arm64 go build -trimpath -ldflags='-s -w' -o bootstrap ./cmd
 
       - name: Package Lambda
         run: zip -j "${LAMBDA_ARCHIVE}" bootstrap
