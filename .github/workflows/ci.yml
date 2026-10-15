@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.27.x"
+  GOOS: linux
+  GOARCH: arm64
+  LAMBDA_ARCHIVE: lambda-handler.zip
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build Lambda binary
+        run: go build -trimpath -ldflags='-s -w' -o bootstrap ./cmd
+
+      - name: Package Lambda
+        run: zip -j "${LAMBDA_ARCHIVE}" bootstrap
+
+      - name: Upload Lambda package
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-package
+          path: ${{ env.LAMBDA_ARCHIVE }}
+          if-no-files-found: error
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download Lambda package
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-package
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Deploy Lambda code
+        run: >-
+          aws lambda update-function-code
+          --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}"
+          --zip-file fileb://${{ env.LAMBDA_ARCHIVE }}
