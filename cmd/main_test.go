@@ -9,5 +9,5 @@ import (
 func TestHello(t *testing.T) {
 	got, err := hello()
 	assert.NoError(t, err)
-	assert.Equal(t, response{Message: "Hello, world!"}, got)
+	assert.Equal(t, response{Message: "Hello, world! v2"}, got)
 }

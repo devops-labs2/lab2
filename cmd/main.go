@@ -9,7 +9,7 @@ type response struct {
 }
 
 func hello() (response, error) {
-	return response{Message: "Hello, world!"}, nil
+	return response{Message: "Hello, world! v2"}, nil
 }
 
 func main() {
